@@ -84,6 +84,7 @@ cargo run -- fuzz test_schema.json --list-mutations
 
 Toute la documentation est disponible dans le dossier `doc/` :
 
+- **[doc/USER_MANUAL.md](doc/USER_MANUAL.md)** : **Manuel utilisateur complet** - Guide détaillé de toutes les fonctionnalités
 - **[doc/TEST_PLAN.md](doc/TEST_PLAN.md)** : Plan de test logiciel détaillé (JTD et JSON Schema 2020-12)
 - **[doc/TEST_RESULTS.md](doc/TEST_RESULTS.md)** : Résultats des tests exécutés (103 tests, 100% de réussite)
 - **[doc/RFC_COVERAGE.md](doc/RFC_COVERAGE.md)** : Vérification de la couverture complète de la RFC 8927
