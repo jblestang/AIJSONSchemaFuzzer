@@ -1,6 +1,149 @@
 use crate::schema::json_schema::{JsonSchema2020, JsonSchemaObject, JsonSchemaItems};
+use crate::fuzzer::mutation_names::SyntaxMutationName;
 use rand::Rng;
 use serde_json::Value;
+
+/// Génère un JSON syntaxiquement invalide pour JSON Schema 2020-12
+pub fn generate_json_schema_syntax_invalid(
+    schema: &JsonSchema2020,
+    mutation_name: Option<&str>,
+) -> Result<String, String> {
+    // Générer un JSON valide basique
+    let valid_json = generate_json_schema_valid_value(schema);
+    
+    // Pour mixed-indentation, on a besoin d'un JSON formaté
+    let syntax_name = mutation_name.and_then(|n| SyntaxMutationName::from_str(n));
+    let needs_formatted = syntax_name == Some(SyntaxMutationName::MixedIndentation);
+    let json_str = if needs_formatted {
+        serde_json::to_string_pretty(&valid_json)
+            .map_err(|e| format!("Erreur de sérialisation: {}", e))?
+    } else {
+        serde_json::to_string(&valid_json)
+            .map_err(|e| format!("Erreur de sérialisation: {}", e))?
+    };
+    
+    // Appliquer la mutation syntaxique (même logique que pour JTD)
+    let mutation = if let Some(name) = syntax_name {
+        match name {
+            SyntaxMutationName::MissingClosingBrace => 0,
+            SyntaxMutationName::MissingOpeningBrace => 1,
+            SyntaxMutationName::InvalidCharacter => 2,
+            SyntaxMutationName::CommaToSemicolon => 3,
+            SyntaxMutationName::RemoveQuotes => 4,
+            SyntaxMutationName::TrailingComma => 5,
+            SyntaxMutationName::ColonToEquals => 6,
+            SyntaxMutationName::TruncatedJson => 7,
+            SyntaxMutationName::MixedIndentation => 8,
+        }
+    } else {
+        let mut rng = rand::thread_rng();
+        rng.gen_range(0..=8)
+    };
+    
+    let invalid = match mutation {
+        0 => {
+            // Supprimer une accolade fermante
+            if json_str.ends_with('}') || json_str.ends_with(']') {
+                json_str[..json_str.len() - 1].to_string()
+            } else {
+                format!("{}}}", json_str)
+            }
+        }
+        1 => {
+            // Supprimer une accolade ouvrant
+            if json_str.starts_with('{') || json_str.starts_with('[') {
+                json_str[1..].to_string()
+            } else {
+                format!("{{{}", json_str)
+            }
+        }
+        2 => {
+            // Ajouter un caractère invalide
+            format!("{}x", json_str)
+        }
+        3 => {
+            // Remplacer une virgule par un point-virgule
+            json_str.replace(',', ";")
+        }
+        4 => {
+            // Supprimer les guillemets d'une clé
+            json_str.replace("\"", "")
+        }
+        5 => {
+            // Ajouter une virgule trailing
+            if json_str.ends_with('}') {
+                format!("{},", &json_str[..json_str.len() - 1])
+            } else if json_str.ends_with(']') {
+                format!("{},]", &json_str[..json_str.len() - 1])
+            } else {
+                format!("{},", json_str)
+            }
+        }
+        6 => {
+            // Remplacer : par =
+            json_str.replace(':', "=")
+        }
+        7 => {
+            // JSON tronqué
+            if json_str.len() > 10 {
+                json_str[..json_str.len() / 2].to_string()
+            } else {
+                json_str
+            }
+        }
+        8 => {
+            // Mélange tabulations et espaces dans l'indentation
+            // Utiliser la même logique que pour JTD
+            let mut result = String::new();
+            let mut in_string = false;
+            let mut escape_next = false;
+            let mut rng = rand::thread_rng();
+            let mut chars = json_str.chars().peekable();
+            
+            while let Some(ch) = chars.next() {
+                if escape_next {
+                    result.push(ch);
+                    escape_next = false;
+                    continue;
+                }
+                
+                match ch {
+                    '\\' => {
+                        result.push(ch);
+                        escape_next = true;
+                    }
+                    '"' => {
+                        result.push(ch);
+                        in_string = !in_string;
+                    }
+                    '\n' => {
+                        result.push(ch);
+                        // Ajouter indentation mixte après un saut de ligne
+                        if !in_string {
+                            while let Some(&next) = chars.peek() {
+                                if next == ' ' || next == '\t' {
+                                    chars.next();
+                                    if rng.gen_bool(0.5) {
+                                        result.push('\t');
+                                    } else {
+                                        result.push(' ');
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    _ => result.push(ch),
+                }
+            }
+            result
+        }
+        _ => json_str,
+    };
+    
+    Ok(invalid)
+}
 
 /// Génère un JSON sémantiquement invalide pour JSON Schema 2020-12
 pub fn generate_json_schema_semantic_invalid(
@@ -158,6 +301,20 @@ fn generate_json_schema_object_invalid(
         }
     }
     
+    // Mutations pour type
+    if let Some(ref type_) = schema.type_ {
+        // Générer un type incorrect
+        return generate_type_violation(type_);
+    }
+    
+    // Mutations pour enum
+    if let Some(ref enum_) = schema.enum_ {
+        if !enum_.is_empty() {
+            // Générer une valeur non dans l'enum
+            return generate_enum_violation(enum_);
+        }
+    }
+    
     // Mutations pour const
     if let Some(ref const_value) = schema.const_ {
         // Générer une valeur différente de la constante
@@ -170,6 +327,43 @@ fn generate_json_schema_object_invalid(
             // Générer un objet sans une propriété requise
             return generate_missing_required_property(schema, required);
         }
+    }
+    
+    // Mutations pour additionalProperties
+    if let Some(ref additional_properties) = schema.additional_properties {
+        match additional_properties {
+            crate::schema::json_schema::JsonSchemaAdditionalProperties::Boolean(false) => {
+                // Générer un objet avec une propriété supplémentaire (sera rejetée)
+                return generate_additional_properties_violation(schema);
+            }
+            crate::schema::json_schema::JsonSchemaAdditionalProperties::Schema(_) => {
+                // Générer un objet avec une propriété supplémentaire invalide selon le schéma
+                return generate_additional_properties_violation(schema);
+            }
+            crate::schema::json_schema::JsonSchemaAdditionalProperties::Boolean(true) => {
+                // Pas de violation possible si true
+            }
+        }
+    }
+    
+    // Mutations pour optionalProperties
+    if let Some(ref optional_properties) = schema.optional_properties {
+        if !optional_properties.is_empty() {
+            // Générer un objet avec une propriété optionnelle invalide
+            return generate_optional_properties_invalid(schema);
+        }
+    }
+    
+    // Mutations pour uniqueItems
+    if let Some(true) = schema.unique_items {
+        // Générer un tableau avec des doublons
+        return generate_unique_items_violation(schema);
+    }
+    
+    // Mutations pour contains
+    if let Some(ref contains) = schema.contains {
+        // Générer un tableau sans élément qui satisfait contains
+        return generate_contains_violation(schema, contains);
     }
     
     // Mutations pour minItems (seulement si pas de prefixItems, car géré ci-dessus)
@@ -210,6 +404,18 @@ fn generate_json_schema_object_invalid(
         return Value::String("does_not_match_pattern".to_string());
     }
     
+    // Mutations pour exclusiveMinimum
+    if let Some(exclusive_minimum) = schema.exclusive_minimum {
+        // Générer un nombre trop petit (<= exclusiveMinimum)
+        return Value::Number(serde_json::Number::from_f64(exclusive_minimum).unwrap_or(serde_json::Number::from(0)));
+    }
+    
+    // Mutations pour exclusiveMaximum
+    if let Some(exclusive_maximum) = schema.exclusive_maximum {
+        // Générer un nombre trop grand (>= exclusiveMaximum)
+        return Value::Number(serde_json::Number::from_f64(exclusive_maximum).unwrap_or(serde_json::Number::from(0)));
+    }
+    
     // Mutations pour minimum
     if let Some(minimum) = schema.minimum {
         // Générer un nombre trop petit
@@ -226,6 +432,13 @@ fn generate_json_schema_object_invalid(
     if let Some(multiple_of) = schema.multiple_of {
         // Générer un nombre qui n'est pas un multiple
         return Value::Number(serde_json::Number::from_f64(multiple_of + 0.5).unwrap_or(serde_json::Number::from(1)));
+    }
+    
+    // Mutations pour $ref
+    if let Some(ref ref_path) = schema.ref_ {
+        // Générer une instance invalide selon la référence
+        // Pour simplifier, on génère null (sera invalide si la référence attend autre chose)
+        return Value::Null;
     }
     
     // Par défaut, générer une valeur invalide basique
@@ -364,6 +577,54 @@ fn generate_specific_mutation(schema: &JsonSchemaObject, name: &str) -> Value {
                 return Value::Number(serde_json::Number::from_f64(multiple_of + 0.5).unwrap_or(serde_json::Number::from(1)));
             }
             Value::Null
+        }
+        "type-violation" => {
+            if let Some(ref type_) = schema.type_ {
+                return generate_type_violation(type_);
+            }
+            Value::Null
+        }
+        "enum-violation" => {
+            if let Some(ref enum_) = schema.enum_ {
+                if !enum_.is_empty() {
+                    return generate_enum_violation(enum_);
+                }
+            }
+            Value::Null
+        }
+        "unique-items-violation" => {
+            if let Some(true) = schema.unique_items {
+                return generate_unique_items_violation(schema);
+            }
+            Value::Null
+        }
+        "contains-violation" => {
+            if let Some(ref contains) = schema.contains {
+                return generate_contains_violation(schema, contains);
+            }
+            Value::Null
+        }
+        "exclusive-minimum-violation" => {
+            if let Some(exclusive_minimum) = schema.exclusive_minimum {
+                return Value::Number(serde_json::Number::from_f64(exclusive_minimum).unwrap_or(serde_json::Number::from(0)));
+            }
+            Value::Null
+        }
+        "exclusive-maximum-violation" => {
+            if let Some(exclusive_maximum) = schema.exclusive_maximum {
+                return Value::Number(serde_json::Number::from_f64(exclusive_maximum).unwrap_or(serde_json::Number::from(0)));
+            }
+            Value::Null
+        }
+        "ref-invalid" => {
+            // Générer une instance invalide selon la référence
+            return Value::Null;
+        }
+        "additional-properties-violation" => {
+            return generate_additional_properties_violation(schema);
+        }
+        "optional-properties-invalid" => {
+            return generate_optional_properties_invalid(schema);
         }
         _ => Value::Null,
     }
@@ -611,4 +872,145 @@ fn generate_json_schema_valid_value(schema: &JsonSchema2020) -> Value {
             }
         }
     }
+}
+
+fn generate_type_violation(type_: &crate::schema::json_schema::JsonSchemaType) -> Value {
+    // Générer un type différent de celui attendu
+    match type_ {
+        crate::schema::json_schema::JsonSchemaType::String => Value::Number(serde_json::Number::from(42)),
+        crate::schema::json_schema::JsonSchemaType::Number => Value::String("not_a_number".to_string()),
+        crate::schema::json_schema::JsonSchemaType::Integer => Value::String("not_an_integer".to_string()),
+        crate::schema::json_schema::JsonSchemaType::Boolean => Value::String("not_a_boolean".to_string()),
+        crate::schema::json_schema::JsonSchemaType::Null => Value::String("not_null".to_string()),
+        crate::schema::json_schema::JsonSchemaType::Array => Value::String("not_an_array".to_string()),
+        crate::schema::json_schema::JsonSchemaType::Object => Value::String("not_an_object".to_string()),
+    }
+}
+
+fn generate_enum_violation(enum_: &[serde_json::Value]) -> Value {
+    // Générer une valeur qui n'est pas dans l'enum
+    // Si l'enum contient des strings, générer une string différente
+    // Sinon, générer un type différent
+    if let Some(Value::String(_)) = enum_.first() {
+        // Générer une string qui n'est pas dans l'enum
+        let mut candidate = "not_in_enum_0".to_string();
+        let mut counter = 0;
+        while enum_.contains(&Value::String(candidate.clone())) {
+            candidate = format!("not_in_enum_{}", counter);
+            counter += 1;
+        }
+        Value::String(candidate)
+    } else if let Some(Value::Number(_)) = enum_.first() {
+        // Générer un nombre qui n'est pas dans l'enum
+        Value::String("not_a_number_in_enum".to_string())
+    } else {
+        // Par défaut, générer une string
+        Value::String("not_in_enum".to_string())
+    }
+}
+
+fn generate_unique_items_violation(schema: &JsonSchemaObject) -> Value {
+    // Générer un tableau avec des éléments dupliqués
+    let mut arr = Vec::new();
+    
+    // Générer un élément valide selon items ou prefixItems
+    let valid_item = if let Some(ref items) = schema.items {
+        if let JsonSchemaItems::Schema(items_schema) = items {
+            generate_json_schema_valid_value(items_schema)
+        } else {
+            Value::String("item".to_string())
+        }
+    } else if let Some(ref prefix_items) = schema.prefix_items {
+        if !prefix_items.is_empty() {
+            generate_json_schema_valid_value(&prefix_items[0])
+        } else {
+            Value::String("item".to_string())
+        }
+    } else {
+        Value::String("item".to_string())
+    };
+    
+    // Ajouter le même élément deux fois
+    arr.push(valid_item.clone());
+    arr.push(valid_item);
+    
+    Value::Array(arr)
+}
+
+fn generate_contains_violation(schema: &JsonSchemaObject, contains: &JsonSchema2020) -> Value {
+    // Générer un tableau sans élément qui satisfait contains
+    let mut arr = Vec::new();
+    
+    // Générer des éléments valides selon items ou prefixItems, mais qui ne satisfont pas contains
+    let invalid_for_contains = generate_json_schema_invalid_value(contains, None);
+    
+    // Ajouter quelques éléments invalides pour contains
+    arr.push(invalid_for_contains.clone());
+    arr.push(invalid_for_contains);
+    
+    Value::Array(arr)
+}
+
+fn generate_additional_properties_violation(schema: &JsonSchemaObject) -> Value {
+    use crate::schema::json_schema::JsonSchemaAdditionalProperties;
+    
+    let mut obj = serde_json::Map::new();
+    
+    // Ajouter les propriétés valides selon properties
+    if let Some(ref properties) = schema.properties {
+        for (key, prop_schema) in properties {
+            let value = generate_json_schema_valid_value(prop_schema);
+            obj.insert(key.clone(), value);
+        }
+    }
+    
+    // Ajouter une propriété supplémentaire invalide
+    if let Some(ref additional_properties) = schema.additional_properties {
+        match additional_properties {
+            JsonSchemaAdditionalProperties::Boolean(false) => {
+                // Si additionalProperties: false, ajouter n'importe quelle propriété supplémentaire
+                obj.insert("extra_property".to_string(), Value::String("invalid".to_string()));
+            }
+            JsonSchemaAdditionalProperties::Schema(add_schema) => {
+                // Si additionalProperties: <schema>, ajouter une propriété qui viole ce schéma
+                let invalid_value = generate_json_schema_invalid_value(add_schema, None);
+                obj.insert("extra_property".to_string(), invalid_value);
+            }
+            JsonSchemaAdditionalProperties::Boolean(true) => {
+                // Si additionalProperties: true, on ne peut pas violer, donc générer null
+                return Value::Null;
+            }
+        }
+    } else {
+        // Si additionalProperties n'est pas défini, par défaut c'est true, donc on ne peut pas violer
+        return Value::Null;
+    }
+    
+    Value::Object(obj)
+}
+
+fn generate_optional_properties_invalid(schema: &JsonSchemaObject) -> Value {
+    let mut obj = serde_json::Map::new();
+    
+    // Ajouter les propriétés requises valides
+    if let Some(ref properties) = schema.properties {
+        for (key, prop_schema) in properties {
+            let value = generate_json_schema_valid_value(prop_schema);
+            obj.insert(key.clone(), value);
+        }
+    }
+    
+    // Ajouter une propriété optionnelle invalide
+    if let Some(ref optional_properties) = schema.optional_properties {
+        if let Some((key, opt_schema)) = optional_properties.iter().next() {
+            // Générer une valeur invalide pour cette propriété optionnelle
+            let invalid_value = generate_json_schema_invalid_value(opt_schema, None);
+            obj.insert(key.clone(), invalid_value);
+        }
+    } else {
+        // Si pas d'optionalProperties, on ne peut pas violer
+        return Value::Null;
+    }
+    
+    Value::Object(obj)
 }

@@ -1,8 +1,7 @@
 use crate::error::JtdError;
 use crate::fuzzer::mutations::{generate_invalid_json, MutationType};
 use crate::fuzzer::generator::generate_valid_json;
-use crate::fuzzer::json_schema_mutations::generate_json_schema_semantic_invalid;
-use crate::schema::parser::parse_schema_file;
+use crate::fuzzer::json_schema_mutations::{generate_json_schema_semantic_invalid, generate_json_schema_syntax_invalid};
 use crate::schema::unified_parser::{parse_schema_file_auto, UnifiedSchema};
 use std::fs;
 use std::path::Path;
@@ -57,7 +56,6 @@ pub fn run_fuzzer(schema_path: &Path, options: FuzzerOptions) -> Result<(), JtdE
     for i in 0..options.count {
         match options.mutation_type {
             MutationType::Syntax => {
-                // Pour l'instant, les mutations syntaxiques ne sont supportées que pour JTD
                 match &unified_schema {
                     UnifiedSchema::JTD(jtd_schema) => {
                         let invalid_json = generate_invalid_json(jtd_schema, MutationType::Syntax, options.mutation_name.as_deref())
@@ -73,9 +71,19 @@ pub fn run_fuzzer(schema_path: &Path, options: FuzzerOptions) -> Result<(), JtdE
                             println!();
                         }
                     }
-                    UnifiedSchema::JsonSchema2020(_) => {
-                        eprintln!("⚠ Les mutations syntaxiques ne sont pas encore supportées pour JSON Schema 2020-12");
-                        return Err(JtdError::SchemaSyntaxError("Mutations syntaxiques non supportées pour JSON Schema 2020-12".to_string()));
+                    UnifiedSchema::JsonSchema2020(json_schema) => {
+                        let invalid_json = generate_json_schema_syntax_invalid(json_schema, options.mutation_name.as_deref())
+                            .map_err(|e| JtdError::SchemaSyntaxError(e))?;
+                        
+                        if let Some(ref output_dir) = options.output_dir {
+                            let file_path = format!("{}/invalid_syntax_{:04}.json", output_dir, i);
+                            fs::write(&file_path, &invalid_json)?;
+                            println!("✓ Généré: {}", file_path);
+                        } else {
+                            println!("=== Cas {} (Syntaxiquement invalide) ===", i + 1);
+                            println!("{}", invalid_json);
+                            println!();
+                        }
                     }
                 }
             }

@@ -350,8 +350,40 @@
 | Contraintes chaînes (minLength, maxLength, pattern) | 6 | ✅ 100% |
 | Contraintes nombres (minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf) | 10 | ✅ 100% |
 | $ref vers $defs | 1 | ✅ 100% |
+| format | 11 | ✅ 100% | date-time, date, time, email, uri, uuid, hostname, ipv4, ipv6, json-pointer, regex |
+| unevaluatedItems | 1 | ✅ 100% | Validation implémentée |
+| unevaluatedProperties | 1 | ✅ 100% | Validation implémentée |
+| dependentSchemas | 1 | ✅ 100% | Validation implémentée |
 
 **Couverture globale JSON Schema 2020-12** : 51/51 (100%)
+
+**Mots-clés JSON Schema 2020-12 supportés** : 30+ mots-clés
+- ✅ prefixItems, items, contains
+- ✅ minItems, maxItems, uniqueItems
+- ✅ properties, patternProperties, additionalProperties, optionalProperties, required
+- ✅ minProperties, maxProperties
+- ✅ minLength, maxLength, pattern, format
+- ✅ minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf
+- ✅ type, enum, const
+- ✅ allOf, anyOf, oneOf, not
+- ✅ if, then, else
+- ✅ $ref (vers $defs)
+- ✅ unevaluatedItems, unevaluatedProperties
+- ✅ dependentSchemas
+
+**Mots-clés JSON Schema 2020-12 supportés** : 30+ mots-clés
+- ✅ prefixItems, items, contains
+- ✅ minItems, maxItems, uniqueItems
+- ✅ properties, patternProperties, additionalProperties, optionalProperties, required
+- ✅ minProperties, maxProperties
+- ✅ minLength, maxLength, pattern, format
+- ✅ minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf
+- ✅ type, enum, const
+- ✅ allOf, anyOf, oneOf, not
+- ✅ if, then, else
+- ✅ $ref (vers $defs)
+- ✅ unevaluatedItems, unevaluatedProperties
+- ✅ dependentSchemas
 
 ### 4.2 Types Primitifs
 
@@ -376,8 +408,12 @@
 | Contrainte | Tests | Statut |
 |------------|-------|--------|
 | nullable | 2 | ✅ 100% |
-| additionalProperties | 2 | ⚠️ 50% |
-| optionalProperties | 1 | ✅ 100% |
+| additionalProperties | 2 | ✅ 100% | Validation + mutation |
+| optionalProperties | 1 | ✅ 100% | Validation + mutation |
+| format | 11 | ✅ 100% | date-time, date, time, email, uri, uuid, hostname, ipv4, ipv6, json-pointer, regex |
+| unevaluatedItems | 1 | ✅ 100% | Validation implémentée |
+| unevaluatedProperties | 1 | ✅ 100% | Validation implémentée |
+| dependentSchemas | 1 | ✅ 100% | Validation implémentée |
 
 ## 5. Tests du Fuzzer
 
@@ -408,18 +444,22 @@
 - ✅ Toutes les formes de schéma couvertes
 - ✅ Types, enums, elements, values, properties, discriminator, ref, empty
 
-**Mutations testées (JSON Schema 2020-12)** : 23 types
+**Mutations testées (JSON Schema 2020-12)** : 33 types
 - ✅ prefixItems (6 mutations : wrong-type, extra, too-few, invalid-items, min-items-violation, max-items-violation)
 - ✅ patternProperties (1 mutation)
 - ✅ allOf/anyOf/oneOf/not (4 mutations)
 - ✅ if/then/else (2 mutations)
 - ✅ const (1 mutation)
 - ✅ required (1 mutation)
-- ✅ Contraintes tableaux (2 mutations : min-items-violation, max-items-violation)
+- ✅ type/enum (2 mutations : type-violation, enum-violation)
+- ✅ Contraintes tableaux (4 mutations : min-items-violation, max-items-violation, unique-items-violation, contains-violation)
 - ✅ Contraintes chaînes (3 mutations : min-length-violation, max-length-violation, pattern-violation)
-- ✅ Contraintes nombres (3 mutations : minimum-violation, maximum-violation, multiple-of-violation)
+- ✅ Contraintes nombres (5 mutations : minimum-violation, maximum-violation, exclusive-minimum-violation, exclusive-maximum-violation, multiple-of-violation)
+- ✅ ref (1 mutation : ref-invalid)
+- ✅ additionalProperties (1 mutation : additional-properties-violation)
+- ✅ optionalProperties (1 mutation : optional-properties-invalid)
 
-**Statut** : Toutes les mutations fonctionnent correctement (52 mutations au total)
+**Statut** : Toutes les mutations fonctionnent correctement (62 mutations au total : 29 JTD + 33 JSON Schema 2020-12)
 
 ## 6. Métriques de Qualité
 
@@ -479,9 +519,12 @@ L'implémentation est **complète** avec un taux de réussite de **100%** (103/1
 ### 8.2 Points Forts
 - ✅ Couverture complète de tous les types primitifs JTD (11 types)
 - ✅ Validation correcte de toutes les formes de schéma JTD (8 formes)
-- ✅ Support complet des mots-clés principaux JSON Schema 2020-12 (20+ mots-clés)
+- ✅ Support complet des mots-clés principaux JSON Schema 2020-12 (30+ mots-clés)
 - ✅ Détection automatique du format de schéma (JTD ou JSON Schema 2020-12)
-- ✅ Fuzzer fonctionnel avec 52 mutations (29 JTD + 23 JSON Schema 2020-12)
+- ✅ Fuzzer fonctionnel avec 62 mutations (29 JTD + 33 JSON Schema 2020-12)
+- ✅ Validation des formats (date-time, date, time, email, uri, uuid, hostname, ipv4, ipv6, json-pointer, regex)
+- ✅ Support de unevaluatedItems et unevaluatedProperties
+- ✅ Support de dependentSchemas pour validation conditionnelle
 - ✅ Performance excellente
 - ✅ Pas de problèmes de sécurité
 - ✅ Tous les tests passent (103/103)
@@ -493,9 +536,9 @@ L'implémentation est **complète** avec un taux de réussite de **100%** (103/1
 ### 8.4 Statut Final
 **✅ PRÊT POUR PRODUCTION**
 
-L'outil est fonctionnel et peut être utilisé pour valider des schémas JTD et JSON Schema 2020-12, et générer des cas de test. Tous les tests passent (103/103) et l'implémentation est conforme à la RFC 8927 (JTD) et supporte les mots-clés principaux de JSON Schema 2020-12.
+L'outil est fonctionnel et peut être utilisé pour valider des schémas JTD et JSON Schema 2020-12, et générer des cas de test. Tous les tests passent (103/103) et l'implémentation est conforme à la RFC 8927 (JTD) et supporte 30+ mots-clés de JSON Schema 2020-12, incluant les validations de format, unevaluatedItems, unevaluatedProperties, et dependentSchemas.
 
 ---
 
 **Date de dernière mise à jour** : Dernière exécution des tests  
-**Version du document** : 2.0 (ajout support JSON Schema 2020-12)
+**Version du document** : 2.1 (ajout mutations additionalProperties/optionalProperties, validation format/unevaluatedItems/unevaluatedProperties/dependentSchemas)

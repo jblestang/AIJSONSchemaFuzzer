@@ -46,10 +46,13 @@ Référence : https://json-schema.org/draft/2020-12/json-schema-core
 - ✅ `minProperties` / `maxProperties` : contraintes sur objets
 - ✅ `minLength` / `maxLength` / `pattern` : contraintes sur chaînes
 - ✅ `minimum` / `maximum` / `exclusiveMinimum` / `exclusiveMaximum` / `multipleOf` : contraintes sur nombres
-- ✅ `required` : propriétés requises
-- ✅ `const` : valeurs constantes
-- ⏳ `unevaluatedItems` / `unevaluatedProperties` : à implémenter
-- ⏳ `$dynamicRef` / `$dynamicAnchor` : références dynamiques à implémenter
+    - ✅ `required` : propriétés requises
+    - ✅ `const` : valeurs constantes
+    - ✅ `format` : validation des formats (date-time, date, time, email, uri, uuid, hostname, ipv4, ipv6, json-pointer, regex)
+    - ✅ `unevaluatedItems` : validation des éléments non évalués dans les tableaux
+    - ✅ `unevaluatedProperties` : validation des propriétés non évaluées dans les objets
+    - ✅ `dependentSchemas` : validation conditionnelle basée sur la présence de propriétés
+    - ⏳ `$dynamicRef` / `$dynamicAnchor` : références dynamiques à implémenter (complexe, nécessite un système de résolution dynamique)
 
 ### 4. Tests
 - ✅ Tests pour `prefixItems` (3 tests)

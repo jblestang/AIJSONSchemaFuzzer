@@ -44,7 +44,7 @@ Les tests couvrent :
 - Tests de toutes les formes de schéma JTD (8 formes)
 - Tests de tous les types primitifs JTD (11 types)
 - Tests des contraintes JTD (nullable, additionalProperties, etc.)
-- Tests des mots-clés JSON Schema 2020-12 (prefixItems, items, patternProperties, allOf/anyOf/oneOf/not, if/then/else, const, required, contraintes sur tableaux/objets/chaînes/nombres)
+- Tests des mots-clés JSON Schema 2020-12 (prefixItems, items, contains, minItems, maxItems, uniqueItems, properties, patternProperties, additionalProperties, optionalProperties, required, minProperties, maxProperties, minLength, maxLength, pattern, format, minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, type, enum, const, allOf, anyOf, oneOf, not, if/then/else, $ref, unevaluatedItems, unevaluatedProperties, dependentSchemas)
 - Tests des cas limites et d'erreur
 
 #### 2.1.4 Tests de Fuzzing
@@ -437,6 +437,76 @@ Les tests couvrent :
 **Critères** :
 - ✅ Résolution des références correcte
 
+### 3.14.12 format
+
+**Objectif** : Vérifier la validation des formats de chaînes.
+
+**Code source** : [src/validator/json_schema_validate.rs](../src/validator/json_schema_validate.rs) - Fonction `validate_format()`
+
+**Tests** :
+- `format: "date-time"` valide les timestamps RFC3339
+- `format: "date"` valide les dates ISO 8601 (YYYY-MM-DD)
+- `format: "time"` valide les heures ISO 8601
+- `format: "email"` valide les adresses email (validation basique)
+- `format: "uri"` / `format: "uri-reference"` valide les URI
+- `format: "uuid"` valide les UUID
+- `format: "hostname"` valide les noms d'hôte
+- `format: "ipv4"` valide les adresses IPv4
+- `format: "ipv6"` valide les adresses IPv6 (validation simplifiée)
+- `format: "json-pointer"` valide les JSON Pointers
+- `format: "regex"` valide que la chaîne est une regex valide
+- Formats inconnus sont acceptés par défaut (comportement JSON Schema)
+
+**Critères** :
+- ✅ Validation correcte des formats supportés
+- ✅ Rejet des valeurs qui ne correspondent pas au format
+
+### 3.14.13 unevaluatedItems
+
+**Objectif** : Vérifier la validation des éléments non évalués dans les tableaux.
+
+**Code source** : [src/validator/json_schema_validate.rs](../src/validator/json_schema_validate.rs) - Fonction `validate_array()`
+
+**Tests** :
+- `unevaluatedItems` valide les éléments non couverts par `prefixItems`, `items`, ou `contains`
+- Les éléments évalués ne sont pas re-validés par `unevaluatedItems`
+- Combinaison avec `prefixItems` et `items` fonctionne correctement
+
+**Critères** :
+- ✅ Validation correcte des éléments non évalués
+- ✅ Distinction correcte entre éléments évalués et non évalués
+
+### 3.14.14 unevaluatedProperties
+
+**Objectif** : Vérifier la validation des propriétés non évaluées dans les objets.
+
+**Code source** : [src/validator/json_schema_validate.rs](../src/validator/json_schema_validate.rs) - Fonction `validate_object()`
+
+**Tests** :
+- `unevaluatedProperties` valide les propriétés non couvertes par `properties`, `patternProperties`, ou `additionalProperties`
+- Les propriétés évaluées ne sont pas re-validées par `unevaluatedProperties`
+- Combinaison avec `properties` et `patternProperties` fonctionne correctement
+
+**Critères** :
+- ✅ Validation correcte des propriétés non évaluées
+- ✅ Distinction correcte entre propriétés évaluées et non évaluées
+
+### 3.14.15 dependentSchemas
+
+**Objectif** : Vérifier la validation conditionnelle basée sur la présence de propriétés.
+
+**Code source** : [src/validator/json_schema_validate.rs](../src/validator/json_schema_validate.rs) - Fonction `validate_object()`
+
+**Tests** :
+- Si une propriété spécifiée dans `dependentSchemas` est présente, l'objet entier est validé selon le schéma dépendant
+- Si la propriété n'est pas présente, le schéma dépendant n'est pas appliqué
+- Plusieurs `dependentSchemas` peuvent être définis
+- Validation correcte de l'objet entier selon le schéma dépendant
+
+**Critères** :
+- ✅ Validation conditionnelle correcte
+- ✅ Application du schéma dépendant uniquement si la propriété est présente
+
 ## 4. Tests du Fuzzer
 
 ### 4.1 Mutations Syntaxiques
@@ -467,14 +537,20 @@ Les tests couvrent :
 - Valeurs enum invalides
 - Types mixtes dans tableaux
 
-**Mutations testées (JSON Schema 2020-12)** :
-- `prefixItems` : mauvais types, éléments supplémentaires, pas assez d'éléments
-- `patternProperties` : valeurs invalides pour propriétés matchant le pattern
-- `allOf` / `anyOf` / `oneOf` / `not` : violations de logique combinatoire
-- `if` / `then` / `else` : violations de validation conditionnelle
-- `const` : valeurs différentes de la constante
-- `required` : propriétés requises manquantes
-- Contraintes : violations de `minItems`, `maxItems`, `minLength`, `maxLength`, `pattern`, `minimum`, `maximum`, `multipleOf`
+**Mutations testées (JSON Schema 2020-12)** : 33 types
+- `prefixItems` : 6 mutations (wrong-type, extra, too-few, invalid-items, min-items-violation, max-items-violation)
+- `patternProperties` : 1 mutation (invalid-value)
+- `allOf` / `anyOf` / `oneOf` / `not` : 4 mutations (all-of-invalid, any-of-all-invalid, one-of-multiple-valid, not-satisfied)
+- `if` / `then` / `else` : 2 mutations (if-then-invalid, if-else-invalid)
+- `const` : 1 mutation (const-different)
+- `required` : 1 mutation (missing-required)
+- `type` / `enum` : 2 mutations (type-violation, enum-violation)
+- Contraintes tableaux : 4 mutations (`minItems`, `maxItems`, `uniqueItems`, `contains`)
+- Contraintes chaînes : 3 mutations (`minLength`, `maxLength`, `pattern`)
+- Contraintes nombres : 5 mutations (`minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`)
+- `$ref` : 1 mutation (ref-invalid)
+- `additionalProperties` : 1 mutation (additional-properties-violation)
+- `optionalProperties` : 1 mutation (optional-properties-invalid)
 
 **Critères** :
 - ✅ Génération de JSON sémantiquement invalides
@@ -572,9 +648,15 @@ cargo run -- fuzz schema.json --semantic --count 10
 - **Taux de réussite** : 100% (tous les tests passent)
 - **Couverture des formes JTD** : 8/8 (100%)
 - **Couverture des types JTD** : 11/11 (100%)
-- **Couverture des mots-clés JSON Schema 2020-12** : 20+ mots-clés principaux
+- **Couverture des mots-clés JSON Schema 2020-12** : 30+ mots-clés principaux (prefixItems, items, contains, minItems, maxItems, uniqueItems, properties, patternProperties, additionalProperties, optionalProperties, required, minProperties, maxProperties, minLength, maxLength, pattern, format, minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, type, enum, const, allOf, anyOf, oneOf, not, if/then/else, $ref, unevaluatedItems, unevaluatedProperties, dependentSchemas)
 
-### 9.2 Métriques de Code
+### 9.2 Métriques du Fuzzer
+- **Mutations syntaxiques** : 9 (support JTD et JSON Schema 2020-12)
+- **Mutations sémantiques JTD** : 29
+- **Mutations sémantiques JSON Schema 2020-12** : 33
+- **Total mutations** : 71 (9 syntaxiques + 62 sémantiques)
+
+### 9.3 Métriques de Code
 - **Couverture de code** : À mesurer avec outils Rust
 - **Complexité cyclomatique** : À maintenir faible
 - **Maintenabilité** : Code bien structuré et documenté
@@ -582,3 +664,5 @@ cargo run -- fuzz schema.json --semantic --count 10
 ## 10. Conclusion
 
 Ce plan de test assure une couverture complète de la RFC 8927 et garantit la qualité de l'implémentation. Les tests sont organisés par catégorie et couvrent tous les aspects de la spécification.
+
+**Version du document** : 2.1 (ajout sections format/unevaluatedItems/unevaluatedProperties/dependentSchemas, mise à jour mutations 33 types JSON Schema 2020-12)

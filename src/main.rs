@@ -8,12 +8,12 @@ use std::env;
 use std::path::PathBuf;
 
 fn print_mutations_list() {
-    println!("=== Mutations syntaxiques ===");
+    println!("=== Mutations syntaxiques (JTD et JSON Schema 2020-12) ===");
     for name in crate::fuzzer::mutation_names::SyntaxMutationName::all() {
         println!("  {} - {}", name.to_string(), name.description());
     }
     println!();
-    println!("=== Mutations sémantiques ===");
+    println!("=== Mutations sémantiques JTD ===");
     println!("  Type:");
     println!("    wrong-type - Type incorrect");
     println!("    out-of-range - Valeur hors plage");
@@ -63,6 +63,11 @@ fn print_mutations_list() {
     println!();
     println!("  Empty:");
     println!("    null-for-empty - Null pour empty");
+    println!();
+    println!("=== Mutations sémantiques JSON Schema 2020-12 ===");
+    for name in crate::fuzzer::mutation_names::JsonSchemaSemanticMutationName::all() {
+        println!("  {} - {}", name.to_string(), name.description());
+    }
 }
 
 fn main() {

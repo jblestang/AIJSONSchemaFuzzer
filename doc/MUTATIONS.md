@@ -5,10 +5,10 @@ Ce document décrit **toutes les mutations** implémentées dans le fuzzer pour 
 ## Vue d'ensemble
 
 Le fuzzer génère des JSON invalides de deux types :
-- **Mutations syntaxiques** : JSON mal formé (9 types) - Support JTD uniquement
+- **Mutations syntaxiques** : JSON mal formé (9 types) - Support JTD et JSON Schema 2020-12
 - **Mutations sémantiques** : JSON valide syntaxiquement mais qui viole le schéma
   - **JTD (RFC 8927)** : 29 types de mutations selon le schéma
-  - **JSON Schema 2020-12** : 20+ types de mutations selon le schéma
+  - **JSON Schema 2020-12** : 31 types de mutations selon le schéma
 
 ## Utilisation
 
@@ -28,7 +28,7 @@ cargo run -- fuzz schema.json --syntax --mutation missing-closing-brace --count 
 
 ## Mutations syntaxiques
 
-**9 types de mutations** pour générer des JSON mal formés :
+**9 types de mutations** pour générer des JSON mal formés (support JTD et JSON Schema 2020-12) :
 
 - **missing-closing-brace** : Accolade fermante manquante (`}` ou `]`)
 - **missing-opening-brace** : Accolade ouvrant manquante (`{` ou `[`)
@@ -147,7 +147,15 @@ cargo run -- fuzz schema.json --syntax --mutation missing-closing-brace --count 
 
 ## Mutations pour JSON Schema 2020-12
 
-Le fuzzer supporte également les mutations sémantiques pour JSON Schema 2020-12. Les mutations sont automatiquement détectées selon le format du schéma.
+Le fuzzer supporte les mutations syntaxiques et sémantiques pour JSON Schema 2020-12. Les mutations sont automatiquement détectées selon le format du schéma.
+
+### Mutations syntaxiques
+
+Les **9 mutations syntaxiques** sont identiques pour JTD et JSON Schema 2020-12 (voir section "Mutations syntaxiques" ci-dessus).
+
+### Mutations sémantiques
+
+**31 types de mutations sémantiques** pour JSON Schema 2020-12 :
 
 ### prefixItems (tuples)
 
@@ -196,12 +204,14 @@ Le fuzzer supporte également les mutations sémantiques pour JSON Schema 2020-1
 
 ### Contraintes sur tableaux
 
-**2 types de mutations** :
+**4 types de mutations** :
 
 - **min-items-violation** : Tableau trop court (moins que `minItems`) - génère des valeurs valides selon `items` si présent
 - **max-items-violation** : Tableau trop long (plus que `maxItems`) - génère des valeurs valides selon `items` si présent
+- **unique-items-violation** : Tableau avec éléments dupliqués (violation de `uniqueItems: true`)
+- **contains-violation** : Tableau sans élément qui satisfait `contains`
 
-**Note** : Ces mutations fonctionnent avec ou sans `prefixItems`. Si `prefixItems` est présent, utilisez les mutations spécifiques `prefix-items-min-items-violation` et `prefix-items-max-items-violation`.
+**Note** : Les mutations `min-items-violation` et `max-items-violation` fonctionnent avec ou sans `prefixItems`. Si `prefixItems` est présent, utilisez les mutations spécifiques `prefix-items-min-items-violation` et `prefix-items-max-items-violation`.
 
 ### Contraintes sur chaînes
 
@@ -213,11 +223,45 @@ Le fuzzer supporte également les mutations sémantiques pour JSON Schema 2020-1
 
 ### Contraintes sur nombres
 
-**3 types de mutations** :
+**5 types de mutations** :
 
 - **minimum-violation** : Nombre trop petit (moins que `minimum`)
 - **maximum-violation** : Nombre trop grand (plus que `maximum`)
+- **exclusive-minimum-violation** : Nombre trop petit (moins ou égal à `exclusiveMinimum`)
+- **exclusive-maximum-violation** : Nombre trop grand (plus ou égal à `exclusiveMaximum`)
 - **multiple-of-violation** : Nombre qui n'est pas un multiple de `multipleOf`
+
+### Type et Enum
+
+**2 types de mutations** :
+
+- **type-violation** : Type incorrect (violation du mot-clé `type`)
+- **enum-violation** : Valeur non dans l'enum (violation du mot-clé `enum`)
+
+### Contraintes supplémentaires sur tableaux
+
+**2 types de mutations** :
+
+- **unique-items-violation** : Tableau avec éléments dupliqués (violation de `uniqueItems: true`)
+- **contains-violation** : Tableau sans élément qui satisfait `contains`
+
+### Références
+
+**1 type de mutation** :
+
+- **ref-invalid** : Instance invalide selon la référence `$ref`
+
+### AdditionalProperties
+
+**1 type de mutation** :
+
+- **additional-properties-violation** : Propriété supplémentaire invalide (quand `additionalProperties: false` ou invalide selon le schéma `additionalProperties`)
+
+### OptionalProperties
+
+**1 type de mutation** :
+
+- **optional-properties-invalid** : Propriété optionnelle invalide selon son schéma
 ## Exemples de mutations
 
 ### Suppression de clés requises
@@ -277,17 +321,21 @@ Le fuzzer supporte également les mutations sémantiques pour JSON Schema 2020-1
 | **Ref** | - | 2 | 2 |
 | **Empty** | - | 1 | 1 |
 | **TOTAL JTD** | **9** | **29** | **38** |
-| **JSON Schema 2020-12** | - | **23** | **23** |
+| **JSON Schema 2020-12** | **9** | **33** | **42** |
 |   - prefixItems | - | 6 | 6 |
 |   - patternProperties | - | 1 | 1 |
 |   - allOf/anyOf/oneOf/not | - | 4 | 4 |
 |   - if/then/else | - | 2 | 2 |
 |   - const | - | 1 | 1 |
 |   - required | - | 1 | 1 |
-|   - Contraintes tableaux | - | 2 | 2 |
+|   - type/enum | - | 2 | 2 |
+|   - Contraintes tableaux | - | 4 | 4 |
 |   - Contraintes chaînes | - | 3 | 3 |
-|   - Contraintes nombres | - | 3 | 3 |
-| **TOTAL GLOBAL** | **9** | **52** | **61** |
+|   - Contraintes nombres | - | 5 | 5 |
+|   - ref | - | 1 | 1 |
+|   - additionalProperties | - | 1 | 1 |
+|   - optionalProperties | - | 1 | 1 |
+| **TOTAL GLOBAL** | **9** | **62** | **71** |
 
 ## Couverture des tests
 

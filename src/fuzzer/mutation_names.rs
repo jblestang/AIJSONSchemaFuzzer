@@ -321,3 +321,216 @@ impl SemanticMutationName {
         }
     }
 }
+
+/// Noms des mutations sémantiques pour JSON Schema 2020-12
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum JsonSchemaSemanticMutationName {
+    // PrefixItems
+    PrefixItemsWrongType,
+    PrefixItemsExtra,
+    PrefixItemsTooFew,
+    PrefixItemsInvalidItems,
+    PrefixItemsMinItemsViolation,
+    PrefixItemsMaxItemsViolation,
+    // PatternProperties
+    PatternPropertiesInvalidValue,
+    // AllOf/AnyOf/OneOf/Not
+    AllOfInvalid,
+    AnyOfAllInvalid,
+    OneOfMultipleValid,
+    NotSatisfied,
+    // If/Then/Else
+    IfThenInvalid,
+    IfElseInvalid,
+    // Const
+    ConstDifferent,
+    // Required
+    MissingRequired,
+    // Type
+    TypeViolation,
+    // Enum
+    EnumViolation,
+    // Array Constraints
+    MinItemsViolation,
+    MaxItemsViolation,
+    UniqueItemsViolation,
+    ContainsViolation,
+    // Object Constraints
+    MinPropertiesViolation,
+    MaxPropertiesViolation,
+    // String Constraints
+    MinLengthViolation,
+    MaxLengthViolation,
+    PatternViolation,
+    // Numeric Constraints
+    MinimumViolation,
+    MaximumViolation,
+    ExclusiveMinimumViolation,
+    ExclusiveMaximumViolation,
+    MultipleOfViolation,
+    // Ref
+    RefInvalid,
+    // AdditionalProperties
+    AdditionalPropertiesViolation,
+    // OptionalProperties
+    OptionalPropertiesInvalid,
+}
+
+impl JsonSchemaSemanticMutationName {
+    pub fn all() -> Vec<Self> {
+        vec![
+            JsonSchemaSemanticMutationName::PrefixItemsWrongType,
+            JsonSchemaSemanticMutationName::PrefixItemsExtra,
+            JsonSchemaSemanticMutationName::PrefixItemsTooFew,
+            JsonSchemaSemanticMutationName::PrefixItemsInvalidItems,
+            JsonSchemaSemanticMutationName::PrefixItemsMinItemsViolation,
+            JsonSchemaSemanticMutationName::PrefixItemsMaxItemsViolation,
+            JsonSchemaSemanticMutationName::PatternPropertiesInvalidValue,
+            JsonSchemaSemanticMutationName::AllOfInvalid,
+            JsonSchemaSemanticMutationName::AnyOfAllInvalid,
+            JsonSchemaSemanticMutationName::OneOfMultipleValid,
+            JsonSchemaSemanticMutationName::NotSatisfied,
+            JsonSchemaSemanticMutationName::IfThenInvalid,
+            JsonSchemaSemanticMutationName::IfElseInvalid,
+            JsonSchemaSemanticMutationName::ConstDifferent,
+            JsonSchemaSemanticMutationName::MissingRequired,
+            JsonSchemaSemanticMutationName::TypeViolation,
+            JsonSchemaSemanticMutationName::EnumViolation,
+            JsonSchemaSemanticMutationName::MinItemsViolation,
+            JsonSchemaSemanticMutationName::MaxItemsViolation,
+            JsonSchemaSemanticMutationName::UniqueItemsViolation,
+            JsonSchemaSemanticMutationName::ContainsViolation,
+            JsonSchemaSemanticMutationName::MinPropertiesViolation,
+            JsonSchemaSemanticMutationName::MaxPropertiesViolation,
+            JsonSchemaSemanticMutationName::MinLengthViolation,
+            JsonSchemaSemanticMutationName::MaxLengthViolation,
+            JsonSchemaSemanticMutationName::PatternViolation,
+            JsonSchemaSemanticMutationName::MinimumViolation,
+            JsonSchemaSemanticMutationName::MaximumViolation,
+            JsonSchemaSemanticMutationName::ExclusiveMinimumViolation,
+            JsonSchemaSemanticMutationName::ExclusiveMaximumViolation,
+            JsonSchemaSemanticMutationName::MultipleOfViolation,
+            JsonSchemaSemanticMutationName::RefInvalid,
+            JsonSchemaSemanticMutationName::AdditionalPropertiesViolation,
+            JsonSchemaSemanticMutationName::OptionalPropertiesInvalid,
+        ]
+    }
+    
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "prefix-items-wrong-type" | "prefix_items_wrong_type" => Some(JsonSchemaSemanticMutationName::PrefixItemsWrongType),
+            "prefix-items-extra" | "prefix_items_extra" => Some(JsonSchemaSemanticMutationName::PrefixItemsExtra),
+            "prefix-items-too-few" | "prefix_items_too_few" => Some(JsonSchemaSemanticMutationName::PrefixItemsTooFew),
+            "prefix-items-invalid-items" | "prefix_items_invalid_items" => Some(JsonSchemaSemanticMutationName::PrefixItemsInvalidItems),
+            "prefix-items-min-items-violation" | "prefix_items_min_items_violation" => Some(JsonSchemaSemanticMutationName::PrefixItemsMinItemsViolation),
+            "prefix-items-max-items-violation" | "prefix_items_max_items_violation" => Some(JsonSchemaSemanticMutationName::PrefixItemsMaxItemsViolation),
+            "pattern-properties-invalid-value" | "pattern_properties_invalid_value" => Some(JsonSchemaSemanticMutationName::PatternPropertiesInvalidValue),
+            "all-of-invalid" | "all_of_invalid" => Some(JsonSchemaSemanticMutationName::AllOfInvalid),
+            "any-of-all-invalid" | "any_of_all_invalid" => Some(JsonSchemaSemanticMutationName::AnyOfAllInvalid),
+            "one-of-multiple-valid" | "one_of_multiple_valid" => Some(JsonSchemaSemanticMutationName::OneOfMultipleValid),
+            "not-satisfied" | "not_satisfied" => Some(JsonSchemaSemanticMutationName::NotSatisfied),
+            "if-then-invalid" | "if_then_invalid" => Some(JsonSchemaSemanticMutationName::IfThenInvalid),
+            "if-else-invalid" | "if_else_invalid" => Some(JsonSchemaSemanticMutationName::IfElseInvalid),
+            "const-different" | "const_different" => Some(JsonSchemaSemanticMutationName::ConstDifferent),
+            "missing-required" | "missing_required" => Some(JsonSchemaSemanticMutationName::MissingRequired),
+            "type-violation" | "type_violation" => Some(JsonSchemaSemanticMutationName::TypeViolation),
+            "enum-violation" | "enum_violation" => Some(JsonSchemaSemanticMutationName::EnumViolation),
+            "min-items-violation" | "min_items_violation" => Some(JsonSchemaSemanticMutationName::MinItemsViolation),
+            "max-items-violation" | "max_items_violation" => Some(JsonSchemaSemanticMutationName::MaxItemsViolation),
+            "unique-items-violation" | "unique_items_violation" => Some(JsonSchemaSemanticMutationName::UniqueItemsViolation),
+            "contains-violation" | "contains_violation" => Some(JsonSchemaSemanticMutationName::ContainsViolation),
+            "min-properties-violation" | "min_properties_violation" => Some(JsonSchemaSemanticMutationName::MinPropertiesViolation),
+            "max-properties-violation" | "max_properties_violation" => Some(JsonSchemaSemanticMutationName::MaxPropertiesViolation),
+            "min-length-violation" | "min_length_violation" => Some(JsonSchemaSemanticMutationName::MinLengthViolation),
+            "max-length-violation" | "max_length_violation" => Some(JsonSchemaSemanticMutationName::MaxLengthViolation),
+            "pattern-violation" | "pattern_violation" => Some(JsonSchemaSemanticMutationName::PatternViolation),
+            "minimum-violation" | "minimum_violation" => Some(JsonSchemaSemanticMutationName::MinimumViolation),
+            "maximum-violation" | "maximum_violation" => Some(JsonSchemaSemanticMutationName::MaximumViolation),
+            "exclusive-minimum-violation" | "exclusive_minimum_violation" => Some(JsonSchemaSemanticMutationName::ExclusiveMinimumViolation),
+            "exclusive-maximum-violation" | "exclusive_maximum_violation" => Some(JsonSchemaSemanticMutationName::ExclusiveMaximumViolation),
+            "multiple-of-violation" | "multiple_of_violation" => Some(JsonSchemaSemanticMutationName::MultipleOfViolation),
+            "ref-invalid" | "ref_invalid" => Some(JsonSchemaSemanticMutationName::RefInvalid),
+            "additional-properties-violation" | "additional_properties_violation" => Some(JsonSchemaSemanticMutationName::AdditionalPropertiesViolation),
+            "optional-properties-invalid" | "optional_properties_invalid" => Some(JsonSchemaSemanticMutationName::OptionalPropertiesInvalid),
+            _ => None,
+        }
+    }
+    
+    pub fn to_string(&self) -> &'static str {
+        match self {
+            JsonSchemaSemanticMutationName::PrefixItemsWrongType => "prefix-items-wrong-type",
+            JsonSchemaSemanticMutationName::PrefixItemsExtra => "prefix-items-extra",
+            JsonSchemaSemanticMutationName::PrefixItemsTooFew => "prefix-items-too-few",
+            JsonSchemaSemanticMutationName::PrefixItemsInvalidItems => "prefix-items-invalid-items",
+            JsonSchemaSemanticMutationName::PrefixItemsMinItemsViolation => "prefix-items-min-items-violation",
+            JsonSchemaSemanticMutationName::PrefixItemsMaxItemsViolation => "prefix-items-max-items-violation",
+            JsonSchemaSemanticMutationName::PatternPropertiesInvalidValue => "pattern-properties-invalid-value",
+            JsonSchemaSemanticMutationName::AllOfInvalid => "all-of-invalid",
+            JsonSchemaSemanticMutationName::AnyOfAllInvalid => "any-of-all-invalid",
+            JsonSchemaSemanticMutationName::OneOfMultipleValid => "one-of-multiple-valid",
+            JsonSchemaSemanticMutationName::NotSatisfied => "not-satisfied",
+            JsonSchemaSemanticMutationName::IfThenInvalid => "if-then-invalid",
+            JsonSchemaSemanticMutationName::IfElseInvalid => "if-else-invalid",
+            JsonSchemaSemanticMutationName::ConstDifferent => "const-different",
+            JsonSchemaSemanticMutationName::MissingRequired => "missing-required",
+            JsonSchemaSemanticMutationName::TypeViolation => "type-violation",
+            JsonSchemaSemanticMutationName::EnumViolation => "enum-violation",
+            JsonSchemaSemanticMutationName::MinItemsViolation => "min-items-violation",
+            JsonSchemaSemanticMutationName::MaxItemsViolation => "max-items-violation",
+            JsonSchemaSemanticMutationName::UniqueItemsViolation => "unique-items-violation",
+            JsonSchemaSemanticMutationName::ContainsViolation => "contains-violation",
+            JsonSchemaSemanticMutationName::MinPropertiesViolation => "min-properties-violation",
+            JsonSchemaSemanticMutationName::MaxPropertiesViolation => "max-properties-violation",
+            JsonSchemaSemanticMutationName::MinLengthViolation => "min-length-violation",
+            JsonSchemaSemanticMutationName::MaxLengthViolation => "max-length-violation",
+            JsonSchemaSemanticMutationName::PatternViolation => "pattern-violation",
+            JsonSchemaSemanticMutationName::MinimumViolation => "minimum-violation",
+            JsonSchemaSemanticMutationName::MaximumViolation => "maximum-violation",
+            JsonSchemaSemanticMutationName::ExclusiveMinimumViolation => "exclusive-minimum-violation",
+            JsonSchemaSemanticMutationName::ExclusiveMaximumViolation => "exclusive-maximum-violation",
+            JsonSchemaSemanticMutationName::MultipleOfViolation => "multiple-of-violation",
+            JsonSchemaSemanticMutationName::RefInvalid => "ref-invalid",
+            JsonSchemaSemanticMutationName::AdditionalPropertiesViolation => "additional-properties-violation",
+            JsonSchemaSemanticMutationName::OptionalPropertiesInvalid => "optional-properties-invalid",
+        }
+    }
+    
+    pub fn description(&self) -> &'static str {
+        match self {
+            JsonSchemaSemanticMutationName::PrefixItemsWrongType => "Mauvais type à une position spécifique dans le tuple",
+            JsonSchemaSemanticMutationName::PrefixItemsExtra => "Trop d'éléments quand items: false",
+            JsonSchemaSemanticMutationName::PrefixItemsTooFew => "Pas assez d'éléments (moins que prefixItems)",
+            JsonSchemaSemanticMutationName::PrefixItemsInvalidItems => "Élément supplémentaire invalide selon items",
+            JsonSchemaSemanticMutationName::PrefixItemsMinItemsViolation => "Tableau avec prefixItems valides mais total < minItems",
+            JsonSchemaSemanticMutationName::PrefixItemsMaxItemsViolation => "Tableau avec prefixItems + items qui dépasse maxItems",
+            JsonSchemaSemanticMutationName::PatternPropertiesInvalidValue => "Clé qui match le pattern mais valeur invalide",
+            JsonSchemaSemanticMutationName::AllOfInvalid => "Valeur qui viole un des sous-schémas de allOf",
+            JsonSchemaSemanticMutationName::AnyOfAllInvalid => "Valeur qui viole tous les sous-schémas de anyOf",
+            JsonSchemaSemanticMutationName::OneOfMultipleValid => "Valeur qui satisfait plusieurs sous-schémas de oneOf",
+            JsonSchemaSemanticMutationName::NotSatisfied => "Valeur qui satisfait le schéma not",
+            JsonSchemaSemanticMutationName::IfThenInvalid => "Condition if vraie mais then invalide",
+            JsonSchemaSemanticMutationName::IfElseInvalid => "Condition if fausse mais else invalide",
+            JsonSchemaSemanticMutationName::ConstDifferent => "Valeur différente de la constante requise",
+            JsonSchemaSemanticMutationName::MissingRequired => "Objet sans une propriété requise",
+            JsonSchemaSemanticMutationName::TypeViolation => "Type incorrect (violation du mot-clé type)",
+            JsonSchemaSemanticMutationName::EnumViolation => "Valeur non dans l'enum",
+            JsonSchemaSemanticMutationName::MinItemsViolation => "Tableau trop court (moins que minItems)",
+            JsonSchemaSemanticMutationName::MaxItemsViolation => "Tableau trop long (plus que maxItems)",
+            JsonSchemaSemanticMutationName::UniqueItemsViolation => "Tableau avec éléments dupliqués (uniqueItems: true)",
+            JsonSchemaSemanticMutationName::ContainsViolation => "Tableau sans élément qui satisfait contains",
+            JsonSchemaSemanticMutationName::MinPropertiesViolation => "Objet avec trop peu de propriétés (moins que minProperties)",
+            JsonSchemaSemanticMutationName::MaxPropertiesViolation => "Objet avec trop de propriétés (plus que maxProperties)",
+            JsonSchemaSemanticMutationName::MinLengthViolation => "Chaîne trop courte (moins que minLength)",
+            JsonSchemaSemanticMutationName::MaxLengthViolation => "Chaîne trop longue (plus que maxLength)",
+            JsonSchemaSemanticMutationName::PatternViolation => "Chaîne qui ne match pas le pattern regex",
+            JsonSchemaSemanticMutationName::MinimumViolation => "Nombre trop petit (moins que minimum)",
+            JsonSchemaSemanticMutationName::MaximumViolation => "Nombre trop grand (plus que maximum)",
+            JsonSchemaSemanticMutationName::ExclusiveMinimumViolation => "Nombre trop petit (moins ou égal à exclusiveMinimum)",
+            JsonSchemaSemanticMutationName::ExclusiveMaximumViolation => "Nombre trop grand (plus ou égal à exclusiveMaximum)",
+            JsonSchemaSemanticMutationName::MultipleOfViolation => "Nombre qui n'est pas un multiple de multipleOf",
+            JsonSchemaSemanticMutationName::RefInvalid => "Instance invalide selon la référence $ref",
+            JsonSchemaSemanticMutationName::AdditionalPropertiesViolation => "Propriété supplémentaire invalide (additionalProperties: false ou invalide selon le schéma)",
+            JsonSchemaSemanticMutationName::OptionalPropertiesInvalid => "Propriété optionnelle invalide selon son schéma",
+        }
+    }
+}

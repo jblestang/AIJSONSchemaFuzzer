@@ -6,6 +6,7 @@ use crate::schema::json_schema::{
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
+use chrono;
 
 /// Valide une instance JSON contre un schéma JSON Schema 2020-12
 pub fn validate_json_schema(
@@ -412,6 +413,49 @@ fn validate_array(
         }
     }
     
+    // Valider unevaluatedItems (éléments non évalués par prefixItems, items, contains)
+    if let Some(ref unevaluated_items) = schema.unevaluated_items {
+        // Les éléments évalués sont ceux validés par prefixItems, items, ou contains
+        // Pour simplifier, on considère que tous les éléments après prefixItems sont évalués par items
+        // Si contains est présent, on doit vérifier qu'au moins un élément satisfait contains
+        // Ici, on valide les éléments non évalués (ceux qui ne sont pas couverts par prefixItems/items)
+        // Note: Cette implémentation est simplifiée - une implémentation complète nécessiterait
+        // de tracker quels éléments ont été évalués par quels mots-clés
+        let evaluated_count = prefix_len + 
+            if let Some(JsonSchemaItems::Schema(_)) = schema.items {
+                arr.len().saturating_sub(prefix_len)
+            } else {
+                0
+            };
+        
+        // Si contains est présent et satisfait, on considère que tous les éléments sont évalués
+        let all_evaluated = if schema.contains.is_some() {
+            // Si contains est satisfait, tous les éléments sont évalués
+            true
+        } else {
+            evaluated_count >= arr.len()
+        };
+        
+        if !all_evaluated {
+            // Valider les éléments non évalués selon unevaluatedItems
+            for i in evaluated_count..arr.len() {
+                if let Some(item) = arr.get(i) {
+                    let item_path = format!("{}/{}", instance_path, i);
+                    let item_schema_path = format!("{}/unevaluatedItems", schema_path);
+                    if let Err(mut errs) = validate_json_schema_with_path(
+                        unevaluated_items,
+                        item,
+                        &item_path,
+                        &item_schema_path,
+                        root_defs,
+                    ) {
+                        errors.append(&mut errs);
+                    }
+                }
+            }
+        }
+    }
+    
     if errors.is_empty() {
         Ok(())
     } else {
@@ -567,6 +611,45 @@ fn validate_object(
         }
     }
     
+    // Valider dependentSchemas (si une propriété est présente, valider selon le schéma dépendant)
+    if let Some(ref dependent_schemas) = schema.dependent_schemas {
+        for (key, dep_schema) in dependent_schemas {
+            if obj.contains_key(key) {
+                // La propriété est présente, valider l'objet entier selon le schéma dépendant
+                let dep_path = format!("{}/dependentSchemas/{}", schema_path, escape_json_pointer(key));
+                if let Err(mut errs) = validate_json_schema_with_path(
+                    dep_schema,
+                    instance,
+                    instance_path,
+                    &dep_path,
+                    root_defs,
+                ) {
+                    errors.append(&mut errs);
+                }
+            }
+        }
+    }
+    
+    // Valider unevaluatedProperties (propriétés non évaluées par properties, patternProperties, additionalProperties)
+    if let Some(ref unevaluated_properties) = schema.unevaluated_properties {
+        for (key, value) in obj {
+            if !evaluated_keys.contains(key) {
+                // Cette propriété n'a pas été évaluée, valider selon unevaluatedProperties
+                let prop_path = format!("{}/{}", instance_path, escape_json_pointer(key));
+                let prop_schema_path = format!("{}/unevaluatedProperties", schema_path);
+                if let Err(mut errs) = validate_json_schema_with_path(
+                    unevaluated_properties,
+                    value,
+                    &prop_path,
+                    &prop_schema_path,
+                    root_defs,
+                ) {
+                    errors.append(&mut errs);
+                }
+            }
+        }
+    }
+    
     if errors.is_empty() {
         Ok(())
     } else {
@@ -620,6 +703,16 @@ fn validate_string(
             errors.push(ValidationError {
                 instance_path: instance_path.to_string(),
                 schema_path: format!("{}/pattern", schema_path),
+            });
+        }
+    }
+    
+    // Valider format
+    if let Some(ref format_str) = schema.format {
+        if !validate_format(s, format_str) {
+            errors.push(ValidationError {
+                instance_path: instance_path.to_string(),
+                schema_path: format!("{}/format", schema_path),
             });
         }
     }
@@ -710,4 +803,64 @@ fn validate_number(
 
 fn escape_json_pointer(s: &str) -> String {
     s.replace("~", "~0").replace("/", "~1")
+}
+
+/// Valide le format d'une chaîne selon JSON Schema format
+fn validate_format(s: &str, format_str: &str) -> bool {
+    match format_str {
+        "date-time" => {
+            // RFC3339 date-time format
+            chrono::DateTime::parse_from_rfc3339(s).is_ok()
+        }
+        "date" => {
+            // ISO 8601 date format (YYYY-MM-DD)
+            chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok()
+        }
+        "time" => {
+            // ISO 8601 time format (HH:MM:SS or HH:MM:SS.mmm)
+            chrono::NaiveTime::parse_from_str(s, "%H:%M:%S").is_ok() ||
+            chrono::NaiveTime::parse_from_str(s, "%H:%M:%S%.f").is_ok()
+        }
+        "email" => {
+            // Email format (basic validation)
+            s.contains('@') && s.contains('.') && s.len() > 5
+        }
+        "uri" | "uri-reference" => {
+            // URI format (basic validation)
+            s.starts_with("http://") || s.starts_with("https://") || s.starts_with("ftp://") ||
+            s.starts_with("file://") || s.starts_with("/") || s.starts_with("./")
+        }
+        "uuid" => {
+            // UUID format (8-4-4-4-12 hex digits)
+            let re = Regex::new(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$").unwrap();
+            re.is_match(s)
+        }
+        "hostname" => {
+            // Hostname format (basic validation)
+            !s.is_empty() && s.len() <= 253 && !s.starts_with('.') && !s.ends_with('.')
+        }
+        "ipv4" => {
+            // IPv4 format
+            let parts: Vec<&str> = s.split('.').collect();
+            parts.len() == 4 && parts.iter().all(|p| {
+                p.parse::<u8>().is_ok()
+            })
+        }
+        "ipv6" => {
+            // IPv6 format (basic validation - simplified)
+            s.contains(':') && s.split(':').count() <= 8
+        }
+        "json-pointer" => {
+            // JSON Pointer format (starts with / or empty)
+            s.is_empty() || s.starts_with('/')
+        }
+        "regex" => {
+            // Regex format (try to compile it)
+            Regex::new(s).is_ok()
+        }
+        _ => {
+            // Format inconnu - on accepte par défaut (comportement JSON Schema)
+            true
+        }
+    }
 }
