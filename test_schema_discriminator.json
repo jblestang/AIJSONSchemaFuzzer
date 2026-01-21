@@ -1,0 +1,42 @@
+{
+  "discriminator": "type",
+  "mapping": {
+    "user": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "optionalProperties": {
+        "phone": {
+          "type": "string"
+        }
+      }
+    },
+    "admin": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "level": {
+          "type": "uint8"
+        },
+        "permissions": {
+          "elements": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "guest": {
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

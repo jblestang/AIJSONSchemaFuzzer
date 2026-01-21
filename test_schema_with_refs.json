@@ -1,0 +1,38 @@
+{
+  "definitions": {
+    "Address": {
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "zipCode": {
+          "type": "string"
+        }
+      }
+    },
+    "Person": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "age": {
+          "type": "uint8"
+        },
+        "address": {
+          "ref": "Address"
+        }
+      }
+    }
+  },
+  "properties": {
+    "owner": {
+      "ref": "Person"
+    },
+    "title": {
+      "type": "string"
+    }
+  }
+}

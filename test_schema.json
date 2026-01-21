@@ -1,0 +1,72 @@
+{
+  "properties": {
+    "id": {
+      "type": "uint32"
+    },
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "age": {
+      "type": "uint8"
+    },
+    "isActive": {
+      "type": "boolean"
+    },
+    "createdAt": {
+      "type": "timestamp"
+    },
+    "balance": {
+      "type": "float64"
+    },
+    "tags": {
+      "elements": {
+        "type": "string"
+      }
+    },
+    "metadata": {
+      "values": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "enum": ["pending", "active", "inactive", "suspended"]
+    },
+    "address": {
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "zipCode": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        }
+      },
+      "optionalProperties": {
+        "apartment": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "optionalProperties": {
+    "phone": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

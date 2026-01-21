@@ -1,0 +1,26 @@
+{
+  "properties": {
+    "tags": {
+      "elements": {
+        "type": "string"
+      }
+    },
+    "numbers": {
+      "elements": {
+        "type": "uint8"
+      }
+    },
+    "nested": {
+      "elements": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "uint8"
+          }
+        }
+      }
+    }
+  }
+}
